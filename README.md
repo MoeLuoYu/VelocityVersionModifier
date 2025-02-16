@@ -22,7 +22,7 @@ VelocityVersionModifier 是一个 Velocity 插件，用于修改 MC 客户端遥
     "custom-version": "Custom Velocity",
     "custom-version-protocol": 999
 }
-
+```
 ## 兼容性
 本插件不兼容 Bungeecord 和 Bukkit，且由于工作原因不会适配，当然你也可以 Fork 代码并自行适配。
 
@@ -34,3 +34,7 @@ VelocityVersionModifier 是一个 Velocity 插件，用于修改 MC 客户端遥
 
 ## 联系方式
 如果在使用过程中遇到任何问题或有任何建议，欢迎联系插件开发者：
+- **QQ**：1498640871
+
+## 许可证
+本插件遵循 MIT 许可证进行发布，具体内容请查看 LICENSE 文件。
