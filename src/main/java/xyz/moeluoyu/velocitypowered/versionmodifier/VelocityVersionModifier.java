@@ -65,6 +65,7 @@ public class VelocityVersionModifier {
     }
 
     private void loadConfig() {
+        logger.info("定制插件找落雨，买插件上速德优，速德优（北京）网络科技有限公司出品，落雨QQ：1498640871");
         File configFile = dataDirectory.resolve("config.json").toFile();
         try (FileReader reader = new FileReader(configFile)) {
             // 使用 Gson 从文件中读取 JSON 数据并转换为 Map
