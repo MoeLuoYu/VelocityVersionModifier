@@ -26,7 +26,7 @@ import java.util.*;
 @Plugin(
         id = "velocity-version-modifier",
         name = "VelocityVersionModifier",
-        version = "1.0",
+        version = "1.3",
         description = "修改MC客户端遥测中的服务器版本信息",
         authors = {"MoeLuoYu"}
 )
@@ -35,9 +35,8 @@ public class VelocityVersionModifier {
     private final Logger logger;
     private final Path dataDirectory;
     private String customVersion;
-    private int customVersionProtocol;
+    private List<Integer> customVersionProtocols;
     private static final String PERMISSION_NODE = "velocityversionmodifier.admin";
-    // 创建一个带有格式化功能的 Gson 实例
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     @Inject
@@ -52,7 +51,7 @@ public class VelocityVersionModifier {
         ensureConfigFileExists();
         loadConfig();
         logger.info("定制插件找落雨，买插件上速德优，速德优（北京）网络科技有限公司出品，落雨QQ：1498640871");
-        logger.info("自定义服务器版本设置为: {} (协议号: {})", customVersion, customVersionProtocol);
+        logger.info("自定义服务器版本设置为: {} (协议号: {})", customVersion, customVersionProtocols);
         registerCommand();
     }
 
@@ -60,23 +59,83 @@ public class VelocityVersionModifier {
     public void onProxyPing(ProxyPingEvent event) {
         ServerPing ping = event.getPing();
         ServerPing.Builder builder = ping.asBuilder();
-        ServerPing.Version version = new ServerPing.Version(customVersionProtocol, customVersion);
+
+        int clientProtocol = event.getConnection().getProtocolVersion().getProtocol();
+        int selectedProtocol;
+
+        if (customVersionProtocols.contains(clientProtocol)) {
+            selectedProtocol = clientProtocol;
+        } else if (!customVersionProtocols.isEmpty()) {
+            selectedProtocol = customVersionProtocols.get(0);
+        } else {
+            selectedProtocol = 999;
+        }
+
+        String displayVersion = customVersion + " " + String.valueOf(customVersionProtocols)
+                .replaceAll("[\\[\\]]", "")
+                // 填充一些常见的协议号和对应的游戏版本
+                .replaceAll(String.valueOf(4), "1.7.2/1.7.3/1.7.4/1.7.5")
+                .replaceAll(String.valueOf(5), "1.7.6/1.7.7/1.7.8/1.7.9/1.7.10")
+                .replaceAll(String.valueOf(47), "1.8.X")
+                .replaceAll(String.valueOf(108), "1.9/1.9.1")
+                .replaceAll(String.valueOf(110), "1.9.2/1.9.3/1.9.4")
+                .replaceAll(String.valueOf(210), "1.10/1.10.1/1.10.2")
+                .replaceAll(String.valueOf(315), "1.11/1.11.1")
+                .replaceAll(String.valueOf(316), "1.11.2")
+                .replaceAll(String.valueOf(335), "1.12")
+                .replaceAll(String.valueOf(338), "1.12.1")
+                .replaceAll(String.valueOf(340), "1.12.2")
+                .replaceAll(String.valueOf(393), "1.13")
+                .replaceAll(String.valueOf(401), "1.13.1")
+                .replaceAll(String.valueOf(404), "1.13.2")
+                .replaceAll(String.valueOf(477), "1.14")
+                .replaceAll(String.valueOf(480), "1.14.1")
+                .replaceAll(String.valueOf(485), "1.14.2")
+                .replaceAll(String.valueOf(490), "1.14.3")
+                .replaceAll(String.valueOf(498), "1.14.4")
+                .replaceAll(String.valueOf(573), "1.15")
+                .replaceAll(String.valueOf(575), "1.15.1")
+                .replaceAll(String.valueOf(578), "1.15.2")
+                .replaceAll(String.valueOf(735), "1.16")
+                .replaceAll(String.valueOf(736), "1.16.1")
+                .replaceAll(String.valueOf(751), "1.16.2")
+                .replaceAll(String.valueOf(753), "1.16.3")
+                .replaceAll(String.valueOf(754), "1.16.4/1.16.5")
+                .replaceAll(String.valueOf(755), "1.17")
+                .replaceAll(String.valueOf(756), "1.17.1")
+                .replaceAll(String.valueOf(757), "1.18/1.18.1")
+                .replaceAll(String.valueOf(758), "1.18.2")
+                .replaceAll(String.valueOf(759), "1.19")
+                .replaceAll(String.valueOf(760), "1.19.1/1.19.2")
+                .replaceAll(String.valueOf(761), "1.19.3")
+                .replaceAll(String.valueOf(762), "1.19.4")
+                .replaceAll(String.valueOf(763), "1.20/1.20.1")
+                .replaceAll(String.valueOf(764), "1.20.2")
+                .replaceAll(String.valueOf(765), "1.20.3/1.20.4")
+                .replaceAll(String.valueOf(766), "1.20.5/1.20.6")
+                .replaceAll(String.valueOf(767), "1.21.1")
+                .replaceAll(String.valueOf(768), "1.21.2/1.21.3")
+                .replaceAll(String.valueOf(769), "1.21.4");
+        ServerPing.Version version = new ServerPing.Version(selectedProtocol, displayVersion);
         builder.version(version);
+
         event.setPing(builder.build());
     }
 
     private void loadConfig() {
         File configFile = dataDirectory.resolve("config.json").toFile();
         try (FileReader reader = new FileReader(configFile)) {
-            // 使用 Gson 从文件中读取 JSON 数据并转换为 Map
-            //noinspection unchecked
             Map<String, Object> config = GSON.fromJson(reader, Map.class);
             customVersion = (String) config.getOrDefault("custom-version", "Custom Velocity");
-            customVersionProtocol = ((Double) config.getOrDefault("custom-version-protocol", 999.0)).intValue();
+            List<Double> protocolList = (List<Double>) config.getOrDefault("custom-version-protocol", Collections.singletonList(999.0));
+            customVersionProtocols = new ArrayList<>();
+            for (Double protocol : protocolList) {
+                customVersionProtocols.add(protocol.intValue());
+            }
         } catch (IOException e) {
             logger.error("加载配置文件失败", e);
             customVersion = "Custom Velocity";
-            customVersionProtocol = 999;
+            customVersionProtocols = Collections.singletonList(999);
         }
     }
 
@@ -100,8 +159,7 @@ public class VelocityVersionModifier {
         try (FileWriter writer = new FileWriter(configFile)) {
             Map<String, Object> defaultConfig = new HashMap<>();
             defaultConfig.put("custom-version", "Custom Velocity");
-            defaultConfig.put("custom-version-protocol", 999);
-            // 使用格式化后的 Gson 实例将 Map 转换为 JSON 并写入文件
+            defaultConfig.put("custom-version-protocol", Collections.singletonList(999));
             GSON.toJson(defaultConfig, writer);
             logger.info("已创建默认配置文件");
         } catch (IOException e) {
@@ -115,7 +173,6 @@ public class VelocityVersionModifier {
                 .aliases("vvm")
                 .build();
         commandManager.register(commandMeta, new SimpleCommand() {
-            // 命令执行和补全逻辑保持不变
             @Override
             public boolean hasPermission(Invocation invocation) {
                 return invocation.source().hasPermission(PERMISSION_NODE);
@@ -141,16 +198,22 @@ public class VelocityVersionModifier {
                         break;
                     case "protocol":
                         if (args.length == 1) {
-                            invocation.source().sendMessage(Component.text("当前设置的协议号: " + customVersionProtocol));
+                            invocation.source().sendMessage(Component.text("当前设置的协议号: " + customVersionProtocols));
                         } else {
-                            try {
-                                int newProtocol = Integer.parseInt(args[1]);
-                                customVersionProtocol = newProtocol;
-                                saveConfig();
-                                invocation.source().sendMessage(Component.text("已将协议号设置为: " + newProtocol));
-                            } catch (NumberFormatException e) {
-                                invocation.source().sendMessage(Component.text("协议号必须是一个有效的整数。"));
+                            String[] protocolStrings = args[1].split(",");
+                            List<Integer> newProtocols = new ArrayList<>();
+                            for (String protocolString : protocolStrings) {
+                                try {
+                                    int newProtocol = Integer.parseInt(protocolString.trim());
+                                    newProtocols.add(newProtocol);
+                                } catch (NumberFormatException e) {
+                                    invocation.source().sendMessage(Component.text("协议号必须是有效的整数，使用半角逗号分隔。"));
+                                    return;
+                                }
                             }
+                            customVersionProtocols = newProtocols;
+                            saveConfig();
+                            invocation.source().sendMessage(Component.text("已将协议号设置为: " + newProtocols));
                         }
                         break;
                     case "reload":
@@ -180,7 +243,7 @@ public class VelocityVersionModifier {
                         case "version":
                             return Collections.singletonList("<版本名称>");
                         case "protocol":
-                            return Collections.singletonList("<协议号>");
+                            return Collections.singletonList("<协议号1,协议号2,...>");
                     }
                 }
                 return Collections.emptyList();
@@ -193,7 +256,7 @@ public class VelocityVersionModifier {
         invocation.source().sendMessage(Component.text("/velocityversionmodifier version - 查看当前设置的版本"));
         invocation.source().sendMessage(Component.text("/velocityversionmodifier version <版本名称> - 设置新的版本名称"));
         invocation.source().sendMessage(Component.text("/velocityversionmodifier protocol - 查看当前设置的协议号"));
-        invocation.source().sendMessage(Component.text("/velocityversionmodifier protocol <协议号> - 设置新的协议号"));
+        invocation.source().sendMessage(Component.text("/velocityversionmodifier protocol <协议号1,协议号2,...> - 设置新的协议号"));
         invocation.source().sendMessage(Component.text("/velocityversionmodifier reload - 重新加载配置文件"));
     }
 
@@ -202,8 +265,7 @@ public class VelocityVersionModifier {
         try (FileWriter writer = new FileWriter(configFile)) {
             Map<String, Object> config = new HashMap<>();
             config.put("custom-version", customVersion);
-            config.put("custom-version-protocol", customVersionProtocol);
-            // 使用格式化后的 Gson 实例将 Map 转换为 JSON 并写入文件
+            config.put("custom-version-protocol", customVersionProtocols);
             GSON.toJson(config, writer);
             logger.info("已保存配置文件");
         } catch (IOException e) {
