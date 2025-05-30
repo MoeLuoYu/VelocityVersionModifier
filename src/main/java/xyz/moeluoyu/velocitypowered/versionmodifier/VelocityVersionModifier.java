@@ -14,6 +14,7 @@ import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import net.kyori.adventure.text.Component;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -26,7 +27,7 @@ import java.util.*;
 @Plugin(
         id = "velocity-version-modifier",
         name = "VelocityVersionModifier",
-        version = "1.3",
+        version = "1.4",
         description = "修改MC客户端遥测中的服务器版本信息",
         authors = {"MoeLuoYu"}
 )
@@ -72,54 +73,77 @@ public class VelocityVersionModifier {
         }
 
         String displayVersion = customVersion + " " + String.valueOf(customVersionProtocols)
-                .replaceAll("[\\[\\]]", "")
-                // 填充一些常见的协议号和对应的游戏版本
-                .replaceAll(String.valueOf(4), "1.7.2/1.7.3/1.7.4/1.7.5")
-                .replaceAll(String.valueOf(5), "1.7.6/1.7.7/1.7.8/1.7.9/1.7.10")
-                .replaceAll(String.valueOf(47), "1.8.X")
-                .replaceAll(String.valueOf(108), "1.9/1.9.1")
-                .replaceAll(String.valueOf(110), "1.9.2/1.9.3/1.9.4")
-                .replaceAll(String.valueOf(210), "1.10/1.10.1/1.10.2")
-                .replaceAll(String.valueOf(315), "1.11/1.11.1")
-                .replaceAll(String.valueOf(316), "1.11.2")
-                .replaceAll(String.valueOf(335), "1.12")
-                .replaceAll(String.valueOf(338), "1.12.1")
-                .replaceAll(String.valueOf(340), "1.12.2")
-                .replaceAll(String.valueOf(393), "1.13")
-                .replaceAll(String.valueOf(401), "1.13.1")
-                .replaceAll(String.valueOf(404), "1.13.2")
-                .replaceAll(String.valueOf(477), "1.14")
-                .replaceAll(String.valueOf(480), "1.14.1")
-                .replaceAll(String.valueOf(485), "1.14.2")
-                .replaceAll(String.valueOf(490), "1.14.3")
-                .replaceAll(String.valueOf(498), "1.14.4")
-                .replaceAll(String.valueOf(573), "1.15")
-                .replaceAll(String.valueOf(575), "1.15.1")
-                .replaceAll(String.valueOf(578), "1.15.2")
-                .replaceAll(String.valueOf(735), "1.16")
-                .replaceAll(String.valueOf(736), "1.16.1")
-                .replaceAll(String.valueOf(751), "1.16.2")
-                .replaceAll(String.valueOf(753), "1.16.3")
-                .replaceAll(String.valueOf(754), "1.16.4/1.16.5")
-                .replaceAll(String.valueOf(755), "1.17")
-                .replaceAll(String.valueOf(756), "1.17.1")
-                .replaceAll(String.valueOf(757), "1.18/1.18.1")
-                .replaceAll(String.valueOf(758), "1.18.2")
-                .replaceAll(String.valueOf(759), "1.19")
-                .replaceAll(String.valueOf(760), "1.19.1/1.19.2")
-                .replaceAll(String.valueOf(761), "1.19.3")
-                .replaceAll(String.valueOf(762), "1.19.4")
-                .replaceAll(String.valueOf(763), "1.20/1.20.1")
-                .replaceAll(String.valueOf(764), "1.20.2")
-                .replaceAll(String.valueOf(765), "1.20.3/1.20.4")
-                .replaceAll(String.valueOf(766), "1.20.5/1.20.6")
-                .replaceAll(String.valueOf(767), "1.21.1")
-                .replaceAll(String.valueOf(768), "1.21.2/1.21.3")
-                .replaceAll(String.valueOf(769), "1.21.4");
+                .replaceAll("[\\[\\]]", "");
+
+        // 临时替换标记（使用UUID确保唯一性）
+        final Map<String, String> replacements = getStringStringMap();
+
+        // 第一阶段：替换为唯一标记
+        Map<String, String> tempMarkers = new HashMap<>();
+        for (Map.Entry<String, String> entry : replacements.entrySet()) {
+            String protocol = entry.getKey();
+            String replacement = entry.getValue();
+            String marker = "PROTOCOL_" + UUID.randomUUID().toString().replace("-", "_");
+            tempMarkers.put(marker, replacement);
+            displayVersion = displayVersion.replaceAll("\\b" + protocol + "\\b", marker);
+        }
+
+        // 第二阶段：恢复真实替换值
+        for (Map.Entry<String, String> entry : tempMarkers.entrySet()) {
+            displayVersion = displayVersion.replace(entry.getKey(), entry.getValue());
+        }
+
         ServerPing.Version version = new ServerPing.Version(selectedProtocol, displayVersion);
         builder.version(version);
 
         event.setPing(builder.build());
+    }
+
+    private static @NotNull Map<String, String> getStringStringMap() {
+        Map<String, String> replacements = new LinkedHashMap<>();
+        replacements.put("769", "1.21.4");
+        replacements.put("768", "1.21.2/1.21.3");
+        replacements.put("767", "1.21.1");
+        replacements.put("766", "1.20.5/1.20.6");
+        replacements.put("765", "1.20.3/1.20.4");
+        replacements.put("764", "1.20.2");
+        replacements.put("763", "1.20/1.20.1");
+        replacements.put("762", "1.19.4");
+        replacements.put("761", "1.19.3");
+        replacements.put("760", "1.19.1/1.19.2");
+        replacements.put("759", "1.19");
+        replacements.put("758", "1.18.2");
+        replacements.put("757", "1.18/1.18.1");
+        replacements.put("756", "1.17.1");
+        replacements.put("755", "1.17");
+        replacements.put("754", "1.16.4/1.16.5");
+        replacements.put("753", "1.16.3");
+        replacements.put("751", "1.16.2");
+        replacements.put("736", "1.16.1");
+        replacements.put("735", "1.16");
+        replacements.put("578", "1.15.2");
+        replacements.put("575", "1.15.1");
+        replacements.put("573", "1.15");
+        replacements.put("498", "1.14.4");
+        replacements.put("490", "1.14.3");
+        replacements.put("485", "1.14.2");
+        replacements.put("480", "1.14.1");
+        replacements.put("477", "1.14");
+        replacements.put("404", "1.13.2");
+        replacements.put("401", "1.13.1");
+        replacements.put("393", "1.13");
+        replacements.put("340", "1.12.2");
+        replacements.put("338", "1.12.1");
+        replacements.put("335", "1.12");
+        replacements.put("316", "1.11.2");
+        replacements.put("315", "1.11/1.11.1");
+        replacements.put("210", "1.10/1.10.1/1.10.2");
+        replacements.put("110", "1.9.2/1.9.3/1.9.4");
+        replacements.put("108", "1.9/1.9.1");
+        replacements.put("47", "1.8.X");
+        replacements.put("5", "1.7.6/1.7.7/1.7.8/1.7.9/1.7.10");
+        replacements.put("4", "1.7.2/1.7.3/1.7.4/1.7.5");
+        return replacements;
     }
 
     private void loadConfig() {
